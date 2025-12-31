@@ -14,6 +14,15 @@ const SECRET = process.env.SECRET;
 server.use(morgan('dev'));
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
+server.use((req, res, next) => {
+    const token = req.headers.authorization;
+    if (!token || token !== SECRET) {
+        return res.status(403).json({
+            error: "unauthorized"
+        })
+    }
+    next();
+})
 
 server.use("/api/v1", mailRoutes);
 

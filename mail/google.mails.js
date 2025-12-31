@@ -14,7 +14,7 @@ export const sendEMail = async (email, subject, content) => {
 }
 
 export const sendOTP = async (email, otp) => {
-    try {w
+    try {
         await transporter.sendMail({
             to: email,
             subject: "Verification One-Time-Password",

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import redis from "../config/redisConfig.js";
+import {sendOTP} from "../mail/google.mails.js";
 
 const router = Router();
 
@@ -12,9 +13,9 @@ router.post("/send-email-otp", async (req, res) => {
         const { email } = req.body;
         const otp = generatorOtp(6);
 
-        await redis.set(`otp:${email}`, otp, );
+        await redis.set(`otp:${email}`, otp, { EX: 30 * 60 } );
 
-        console.log(otp);
+        await sendOTP(email, otp);
 
         return res.status(200).json({
             status: "success",
@@ -44,6 +45,7 @@ router.post("/verify-email-otp", async (req, res) => {
             return: "Invalid OTP"
         })
 
+        await redis.del(`otp:${email}`);
         return res.status(200).json({
             status: "success",
         })
