@@ -21,6 +21,12 @@ server.use((req, res, next) => {
             error: "unauthorized"
         })
     }
+    const { email } = req.body;
+    if(!email) {
+        return res.status(403).json({
+            error: "Body missing or invalid email"
+        })
+    }
     next();
 })
 
