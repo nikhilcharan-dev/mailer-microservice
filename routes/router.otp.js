@@ -1,6 +1,6 @@
 import { Router } from "express";
 import redis from "../config/redisConfig.js";
-import {sendOTP} from "../mail/google.mails.js";
+import { sendOTP } from "../mail/google.mails.js";
 
 const router = Router();
 
@@ -22,6 +22,9 @@ router.post("/send-email-otp", async (req, res) => {
         });
     } catch (err) {
         console.log(err);
+        return res.status(500).json({
+            error: "Internal Server Error",
+        })
     }
 });
 
@@ -37,11 +40,11 @@ router.post("/verify-email-otp", async (req, res) => {
     try {
         const { email, otp } = req.body;
         const OTP = await redis.get(`otp:${email}`);
-        if(!OTP) return res.status(404).send({
+        if(!OTP) return res.status(404).json({
             error: "OTP expired"
         })
 
-        if(OTP !== otp) return res.status(404).send({
+        if(OTP !== otp) return res.status(404).json({
             return: "Invalid OTP"
         })
 
@@ -51,6 +54,9 @@ router.post("/verify-email-otp", async (req, res) => {
         })
     } catch (err) {
         console.log(err);
+        res.status(500).json({
+            error: "Internal Server Error",
+        })
     }
 });
 
