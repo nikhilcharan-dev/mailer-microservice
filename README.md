@@ -1,4 +1,4 @@
-_# 📧 Mailer Service
+# 📧 Mailer Service
 
 ## WorkPing – Internal Microservice
 
