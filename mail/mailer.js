@@ -1,20 +1,28 @@
-import nodemailer from "nodemailer";
+import transporter from "../config/mailTransporter.js";
+import templates from "./templates.js";
 
-/* @Google App password should be configured */
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
-
-transporter.verify((err, info) => {
-    if (err) {
-        console.error("Error Building Mail Connection", err);
-    } else {
-        console.log("[Mail Service] Verified");
+export const sendEMail = async (email, subject, content) => {
+    try {
+        await transporter.sendMail({
+            to: email,
+            subject: subject,
+            html: content
+        })
+    } catch (err) {
+        console.log("Node Mail Error: ", err.message);
+        return Promise.reject(err);
     }
-})
+}
 
-export default transporter;
+export const sendEmailOTP = async (email, otp) => {
+    try {
+        await transporter.sendMail({
+            to: email,
+            subject: "OTP Verification",
+            html: templates.getOtp(email, otp)
+        })
+    } catch (err) {
+        console.log("Node Mail Error: ", err.message);
+        return Promise.reject(err);
+    }
+}

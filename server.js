@@ -1,20 +1,18 @@
 import express from 'express';
-import morgan from 'morgan';
 import 'dotenv/config';
 
 import redis from './config/redisConfig.js';
-import transporter from "./mail/mailer.js";
+import transporter from "./config/mailTransporter.js";
 
-import mailRoutes from './routes/router.otp.js';
+import mailRoutes from './routes/router.mail.js';
+import otpRoutes from './routes/router.otp.js';
 
-const server = express();
 const PORT = process.env.PORT || 3000;
 const SECRET = process.env.SECRET;
+const server = express();
 
-server.use(morgan('dev'));
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
-
 
 server.get("/", (req, res) => {
     return res.status(200).send(
@@ -24,7 +22,7 @@ server.get("/", (req, res) => {
             gap: 1rem; flex-direction: column; overflow: hidden">
             <h1 style="font-size: 80px; font-weight: bolder">Mailer</h1>
             <h3 style="color: green; position: absolute; top: 40%; right: 40%">Live</h3>
-            </div>
+        </div>
         `
     );
 })
@@ -45,11 +43,12 @@ server.use((req, res, next) => {
     next();
 })
 
-server.use("/api/v1", mailRoutes);
+server.use("/api/v1/mail", mailRoutes);
+server.use("/api/v1/otp", otpRoutes);
 
 (async () => {
-    server.listen(PORT, () => {
-        console.log(`Listening on ${process.env.PORT}`);
-    })
     await redis.connect();
+    server.listen(PORT, () => {
+        console.log(`[Server] Listening on ${process.env.PORT}`);
+    })
 })();
