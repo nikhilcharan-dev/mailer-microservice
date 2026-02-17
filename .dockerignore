@@ -1,8 +1,0 @@
-node_modules
-Dockerfile
-docker-compose.yaml
-README.md
-
-.idea
-.vscode
-.git
