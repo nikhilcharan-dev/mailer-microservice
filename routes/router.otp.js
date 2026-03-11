@@ -1,13 +1,14 @@
 import { Router } from "express";
 import redis from "../config/redisConfig.js";
-import { sendEmailOTP } from "../mail/mailer.js";
+import { sendEmailOTP, sendResetPasswordOTP } from "../mail/mailer.js";
 
 const router = Router();
 
 const generatorOtp = (len) => {
-    return Math.floor(Math.random() * (10 ** len)).toString();
+    return Math.floor(Math.random() * (10 ** len)).toString().padStart(len, "0");
 }
 
+/* ─── Send Email Verification OTP ─── */
 router.post("/send-email-otp", async (req, res) => {
     const { email } = req.body;
     try {
@@ -18,6 +19,48 @@ router.post("/send-email-otp", async (req, res) => {
         await sendEmailOTP(email, otp);
 
         return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            error: "Internal Server Error",
+        })
+    }
+});
+
+/* ─── Send Reset Password OTP ─── */
+router.post("/send-reset-password-otp", async (req, res) => {
+    const { email } = req.body;
+    try {
+        const otp = generatorOtp(6);
+
+        await redis.set(`otp:reset:${email}`, otp, { EX: 10 * 60 });
+
+        await sendResetPasswordOTP(email, otp);
+
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            error: "Internal Server Error",
+        })
+    }
+});
+
+/* ─── Verify Reset Password OTP ─── */
+router.post("/verify-reset-password-otp", async (req, res) => {
+    const { email, otp } = req.body;
+    try {
+        const OTP = await redis.get(`otp:reset:${email}`);
+        if (!OTP) return res.status(400).json({ error: "OTP expired or not found" });
+        if (OTP !== otp) return res.status(400).json({ error: "Invalid OTP" });
+
+        await redis.del(`otp:reset:${email}`);
+        return res.status(200).json({
+            verified: true,
             status: "success",
         });
     } catch (err) {
