@@ -10,8 +10,8 @@ export const sendEMail = async (email, subject, content) => {
             html: content,
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -24,8 +24,8 @@ export const sendEmailOTP = async (email, otp) => {
             html: templates.getOtp(email, otp),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -38,8 +38,8 @@ export const sendResetPasswordOTP = async (email, otp) => {
             html: templates.getResetPasswordOtp(email, otp),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -52,8 +52,8 @@ export const sendVerifyPassword = async (email) => {
             html: templates.getVerifyPassword(email),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -66,8 +66,8 @@ export const sendForgotPassword = async (email, resetLink) => {
             html: templates.getForgotPassword(email, resetLink),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -80,8 +80,8 @@ export const sendGreeting = async (email, name, org, role) => {
             html: templates.getGreeting(name, org, role),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -94,8 +94,8 @@ export const sendAlertInfo = async (email, title, message) => {
             html: templates.getAlertInfo(email, title, message),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -108,8 +108,8 @@ export const sendAlertWarning = async (email, title, message, actionLink) => {
             html: templates.getAlertWarning(email, title, message, actionLink),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -122,8 +122,8 @@ export const sendAlertDanger = async (email, title, message, actionLink) => {
             html: templates.getAlertDanger(email, title, message, actionLink),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -136,8 +136,8 @@ export const sendAlertSuccess = async (email, title, message) => {
             html: templates.getAlertSuccess(email, title, message),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -150,8 +150,8 @@ export const sendNotification = async (email, title, message) => {
             html: templates.getNotification(email, title, message),
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };
 
@@ -164,7 +164,7 @@ export const sendRawHTML = async (email, subject, html) => {
             html: html,
         });
     } catch (err) {
-        console.log("Node Mail Error: ", err.message);
-        return Promise.reject(err);
+        console.error("[Mailer Error]", err.message);
+        throw err;
     }
 };

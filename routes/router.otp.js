@@ -4,8 +4,10 @@ import { sendEmailOTP, sendResetPasswordOTP } from "../mail/mailer.js";
 
 const router = Router();
 
+import crypto from "crypto";
+
 const generatorOtp = (len) => {
-    return Math.floor(Math.random() * (10 ** len)).toString().padStart(len, "0");
+    return crypto.randomInt(0, 10 ** len).toString().padStart(len, "0");
 }
 
 /* ─── Send Email Verification OTP ─── */
@@ -20,10 +22,12 @@ router.post("/send-email-otp", async (req, res) => {
 
         return res.status(200).json({
             status: "success",
+            message: "OTP sent successfully"
         });
     } catch (err) {
-        console.log(err);
+        console.error("[OTP Error]", err);
         return res.status(500).json({
+            status: "error",
             error: "Internal Server Error",
         })
     }
@@ -41,10 +45,12 @@ router.post("/send-reset-password-otp", async (req, res) => {
 
         return res.status(200).json({
             status: "success",
+            message: "Reset password OTP sent successfully"
         });
     } catch (err) {
-        console.log(err);
+        console.error("[OTP Error]", err);
         return res.status(500).json({
+            status: "error",
             error: "Internal Server Error",
         })
     }
@@ -55,17 +61,19 @@ router.post("/verify-reset-password-otp", async (req, res) => {
     const { email, otp } = req.body;
     try {
         const OTP = await redis.get(`otp:reset:${email}`);
-        if (!OTP) return res.status(400).json({ error: "OTP expired or not found" });
-        if (OTP !== otp) return res.status(400).json({ error: "Invalid OTP" });
+        if (!OTP) return res.status(400).json({ status: "error", error: "OTP expired or not found" });
+        if (OTP !== otp) return res.status(400).json({ status: "error", error: "Invalid OTP" });
 
         await redis.del(`otp:reset:${email}`);
         return res.status(200).json({
-            verified: true,
             status: "success",
+            verified: true,
+            message: "OTP verified successfully"
         });
     } catch (err) {
-        console.log(err);
+        console.error("[OTP Error]", err);
         return res.status(500).json({
+            status: "error",
             error: "Internal Server Error",
         })
     }
@@ -95,21 +103,25 @@ router.post("/verify-email-otp", async (req, res) => {
     try {
         const OTP = await redis.get(`otp:email:${email}`);
         if(!OTP) return res.status(400).json({
-            error: "Bad Request",
+            status: "error",
+            error: "OTP expired or not found",
         })
 
         if(OTP !== otp) return res.status(400).json({
-            return: "Invalid OTP"
+            status: "error",
+            error: "Invalid OTP"
         })
 
         await redis.del(`otp:email:${email}`);
         return res.status(200).json({
-            verified: true,
             status: "success",
+            verified: true,
+            message: "Email OTP verified successfully"
         })
     } catch (err) {
-        console.log(err);
-        res.status(500).json({
+        console.error("[OTP Error]", err);
+        return res.status(500).json({
+            status: "error",
             error: "Internal Server Error",
         })
     }
