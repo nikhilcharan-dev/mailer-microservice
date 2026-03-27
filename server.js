@@ -8,6 +8,7 @@ import transporter from "./config/mailTransporter.js";
 
 import mailRoutes from './routes/router.mail.js';
 import otpRoutes from './routes/router.otp.js';
+import { getStats } from './utils/analytics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,6 +115,12 @@ server.get("/", (req, res) => {
                     line-height: 1.6;
                     margin-bottom: 2rem;
                 }
+                .links {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    align-items: center;
+                }
                 .link {
                     color: var(--accent);
                     text-decoration: none;
@@ -138,8 +145,181 @@ server.get("/", (req, res) => {
                     Service Operational
                 </div>
                 <p>Welcome to the WorkPing Mailer microservice. All systems are currently running within normal parameters.</p>
-                <a href="/templates" class="link">Explore Email Templates →</a>
+                <div class="links">
+                    <a href="/templates" class="link">Explore Email Templates →</a>
+                    <a href="/dashboard" class="link">View Analytics Dashboard →</a>
+                </div>
             </div>
+        </body>
+        </html>
+        `
+    );
+});
+
+/* ─── Public: Analytics Dashboard ─── */
+server.get("/dashboard", async (req, res) => {
+    const stats = await getStats();
+    return res.status(200).send(
+        `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Mailer Dashboard</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <style>
+                :root {
+                    --bg: #f8fafc;
+                    --text: #0f172a;
+                    --text-muted: #64748b;
+                    --accent: #2563eb;
+                    --card: #ffffff;
+                    --border: #e2e8f0;
+                    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+                    --success: #16a34a;
+                    --failure: #dc2626;
+                }
+                @media (prefers-color-scheme: dark) {
+                    :root {
+                        --bg: #020617;
+                        --text: #f8fafc;
+                        --text-muted: #94a3b8;
+                        --accent: #3b82f6;
+                        --card: #0f172a;
+                        --border: #1e293b;
+                        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+                    }
+                }
+                body {
+                    margin: 0;
+                    font-family: 'Plus Jakarta Sans', sans-serif;
+                    background: var(--bg);
+                    color: var(--text);
+                    padding: 2rem;
+                }
+                .dashboard {
+                    max-width: 1000px;
+                    margin: 0 auto;
+                }
+                header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                }
+                h1 { font-weight: 800; margin: 0; font-size: 2rem; }
+                .grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                    gap: 1.5rem;
+                    margin-bottom: 2rem;
+                }
+                .stat-card {
+                    background: var(--card);
+                    padding: 1.5rem;
+                    border-radius: 20px;
+                    border: 1px solid var(--border);
+                    box-shadow: var(--shadow);
+                }
+                .stat-label { color: var(--text-muted); font-size: 0.875rem; font-weight: 600; }
+                .stat-value { font-size: 2rem; font-weight: 800; margin-top: 0.5rem; }
+                .charts {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                    gap: 1.5rem;
+                }
+                .chart-container {
+                    background: var(--card);
+                    padding: 1.5rem;
+                    border-radius: 20px;
+                    border: 1px solid var(--border);
+                    box-shadow: var(--shadow);
+                }
+                @media (max-width: 500px) {
+                    .charts { grid-template-columns: 1fr; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="dashboard">
+                <header>
+                    <h1>📊 Analytics Dashboard</h1>
+                    <div style="font-size: 0.875rem; color: var(--text-muted);">Last Updated: ${new Date(stats.lastUpdated).toLocaleString()}</div>
+                </header>
+                
+                <div class="grid">
+                    <div class="stat-card">
+                        <div class="stat-label">TOTAL EMAILS SENT</div>
+                        <div class="stat-value">${stats.totalSent}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">SUCCESS RATE</div>
+                        <div class="stat-value" style="color: var(--success);">${stats.totalSent ? Math.round((stats.success / stats.totalSent) * 100) : 0}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">DELIVERY FAILURES</div>
+                        <div class="stat-value" style="color: var(--failure);">${stats.failure}</div>
+                    </div>
+                </div>
+
+                <div class="charts">
+                    <div class="chart-container">
+                        <h3 style="margin-top: 0;">Email Breakdown</h3>
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 style="margin-top: 0;">Delivery Status</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                const ctxType = document.getElementById('typeChart').getContext('2d');
+                new Chart(ctxType, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['OTP', 'Forgot Pwd', 'Greeting', 'Alert', 'Notification', 'Raw'],
+                        datasets: [{
+                            data: [
+                                ${stats.byType.otp}, 
+                                ${stats.byType.forgotPassword}, 
+                                ${stats.byType.greeting}, 
+                                ${stats.byType.alert}, 
+                                ${stats.byType.notification}, 
+                                ${stats.byType.raw}
+                            ],
+                            backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#64748b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+
+                const ctxStatus = document.getElementById('statusChart').getContext('2d');
+                new Chart(ctxStatus, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Success', 'Failure'],
+                        datasets: [{
+                            data: [${stats.success}, ${stats.failure}],
+                            backgroundColor: ['#16a34a', '#dc2626'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            </script>
         </body>
         </html>
         `
@@ -183,6 +363,12 @@ server.use((req, res, next) => {
 
 server.use("/api/v1/mail", mailRoutes);
 server.use("/api/v1/otp", otpRoutes);
+
+/* ─── API: Analytics Stats ─── */
+server.get("/api/v1/analytics/stats", async (req, res) => {
+    const stats = await getStats();
+    return res.status(200).json(stats);
+});
 
 (async () => {
     try {
