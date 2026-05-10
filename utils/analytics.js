@@ -1,10 +1,10 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_PATH = path.join(__dirname, '../data/analytics.json');
+const DATA_PATH = path.join(__dirname, "../data/analytics.json");
 
 const INITIAL_DATA = {
     totalSent: 0,
@@ -16,9 +16,9 @@ const INITIAL_DATA = {
         greeting: 0,
         alert: 0,
         notification: 0,
-        raw: 0
+        raw: 0,
     },
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
 };
 
 async function ensureFile() {
@@ -32,11 +32,11 @@ async function ensureFile() {
 export async function logEmailEvent(type, status) {
     try {
         await ensureFile();
-        const content = await fs.readFile(DATA_PATH, 'utf-8');
+        const content = await fs.readFile(DATA_PATH, "utf-8");
         const data = JSON.parse(content);
 
         data.totalSent++;
-        if (status === 'success') {
+        if (status === "success") {
             data.success++;
         } else {
             data.failure++;
@@ -52,17 +52,17 @@ export async function logEmailEvent(type, status) {
 
         await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2));
     } catch (err) {
-        console.error('[Analytics Error] Failed to log event:', err.message);
+        console.error("[Analytics Error] Failed to log event:", err.message);
     }
 }
 
 export async function getStats() {
     try {
         await ensureFile();
-        const content = await fs.readFile(DATA_PATH, 'utf-8');
+        const content = await fs.readFile(DATA_PATH, "utf-8");
         return JSON.parse(content);
     } catch (err) {
-        console.error('[Analytics Error] Failed to get stats:', err.message);
+        console.error("[Analytics Error] Failed to get stats:", err.message);
         return INITIAL_DATA;
     }
 }

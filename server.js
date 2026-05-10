@@ -1,14 +1,14 @@
-import express from 'express';
-import 'dotenv/config';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import "dotenv/config";
+import path from "path";
+import { fileURLToPath } from "url";
 
-import redis from './config/redisConfig.js';
+import redis from "./config/redisConfig.js";
 import transporter from "./config/mailTransporter.js";
 
-import mailRoutes from './routes/router.mail.js';
-import otpRoutes from './routes/router.otp.js';
-import { getStats } from './utils/analytics.js';
+import mailRoutes from "./routes/router.mail.js";
+import otpRoutes from "./routes/router.otp.js";
+import { getStats } from "./utils/analytics.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +19,11 @@ const server = express();
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
+
+/* ─── Liveness probe — bypasses auth, used by load balancers and Docker HEALTHCHECK ─── */
+server.get("/health", (_req, res) => {
+    res.status(200).json({ status: "UP", service: "workping-mailer", timestamp: new Date().toISOString() });
+});
 
 /* ─── Public: Landing Page ─── */
 server.get("/", (req, res) => {
@@ -337,16 +342,16 @@ server.use((req, res, next) => {
     if (!token || token !== SECRET) {
         return res.status(403).json({
             status: "error",
-            error: "Unauthorized: Invalid or missing secret token"
-        })
+            error: "Unauthorized: Invalid or missing secret token",
+        });
     }
 
     const { email } = req.body;
-    if(!email) {
+    if (!email) {
         return res.status(400).json({
             status: "error",
-            error: "Bad Request: Recipient email is required"
-        })
+            error: "Bad Request: Recipient email is required",
+        });
     }
 
     // Basic email format validation
@@ -354,8 +359,8 @@ server.use((req, res, next) => {
     if (!emailRegex.test(email)) {
         return res.status(400).json({
             status: "error",
-            error: "Bad Request: Invalid email format"
-        })
+            error: "Bad Request: Invalid email format",
+        });
     }
 
     next();

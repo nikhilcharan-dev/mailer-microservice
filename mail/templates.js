@@ -183,7 +183,8 @@ const baseLayout = (bodyContent, { accent = BRAND.color } = {}) => `
    1. OTP VERIFICATION
    ─────────────────────────────────────── */
 
-const otpTemplate = handlebars.compile(baseLayout(`
+const otpTemplate = handlebars.compile(
+    baseLayout(`
   <div class="body">
     <h1>Verify Your Email</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>, use the code below to verify your email address.</p>
@@ -195,13 +196,16 @@ const otpTemplate = handlebars.compile(baseLayout(`
     </div>
     <p style="font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
   </div>
-`));
+`)
+);
 
 /* ───────────────────────────────────────
    2. RESET PASSWORD OTP
    ─────────────────────────────────────── */
 
-const resetPasswordOtpTemplate = handlebars.compile(baseLayout(`
+const resetPasswordOtpTemplate = handlebars.compile(
+    baseLayout(
+        `
   <div class="body">
     <h1>Reset Your Password</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>, we received a request to reset your password. Use the OTP below to proceed.</p>
@@ -213,9 +217,14 @@ const resetPasswordOtpTemplate = handlebars.compile(baseLayout(`
     </div>
     <p style="font-size:13px;">Need help? Contact our support team.</p>
   </div>
-`, { accent: BRAND.warning }));
+`,
+        { accent: BRAND.warning }
+    )
+);
 
-const verifyPasswordTemplate = handlebars.compile(baseLayout(`
+const verifyPasswordTemplate = handlebars.compile(
+    baseLayout(
+        `
   <div class="body">
     <h1>Password Verified ✓</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>, your password has been successfully verified.</p>
@@ -224,9 +233,14 @@ const verifyPasswordTemplate = handlebars.compile(baseLayout(`
     </div>
     <p style="font-size:13px;">If this wasn't you, please reset your password immediately.</p>
   </div>
-`, { accent: BRAND.success }));
+`,
+        { accent: BRAND.success }
+    )
+);
 
-const forgotPasswordTemplate = handlebars.compile(baseLayout(`
+const forgotPasswordTemplate = handlebars.compile(
+    baseLayout(
+        `
   <div class="body">
     <h1>Forgot Your Password?</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>, no worries — it happens! Click the button below to set a new password.</p>
@@ -240,9 +254,13 @@ const forgotPasswordTemplate = handlebars.compile(baseLayout(`
       Or copy this link: <a href="{{resetLink}}" style="color:#2563eb;">{{resetLink}}</a>
     </p>
   </div>
-`, { accent: BRAND.warning }));
+`,
+        { accent: BRAND.warning }
+    )
+);
 
-const greetingTemplate = handlebars.compile(baseLayout(`
+const greetingTemplate = handlebars.compile(
+    baseLayout(`
   <div class="body">
     <h1>Welcome Aboard! 🎉</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>, welcome to <strong>{{org}}</strong>!</p>
@@ -250,9 +268,11 @@ const greetingTemplate = handlebars.compile(baseLayout(`
     <hr class="divider" />
     <p style="font-size:13px;">Get started by exploring your dashboard. If you need any help, our support team is here for you.</p>
   </div>
-`));
+`)
+);
 
-const alertInfoTemplate = handlebars.compile(baseLayout(`
+const alertInfoTemplate = handlebars.compile(
+    baseLayout(`
   <div class="body">
     <h1>📢 {{title}}</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>,</p>
@@ -261,9 +281,12 @@ const alertInfoTemplate = handlebars.compile(baseLayout(`
       ℹ️ This is an informational alert. No action is required.
     </div>
   </div>
-`));
+`)
+);
 
-const alertWarningTemplate = handlebars.compile(baseLayout(`
+const alertWarningTemplate = handlebars.compile(
+    baseLayout(
+        `
   <div class="body">
     <h1>⚠️ {{title}}</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>,</p>
@@ -277,9 +300,14 @@ const alertWarningTemplate = handlebars.compile(baseLayout(`
     </div>
     {{/if}}
   </div>
-`, { accent: BRAND.warning }));
+`,
+        { accent: BRAND.warning }
+    )
+);
 
-const alertDangerTemplate = handlebars.compile(baseLayout(`
+const alertDangerTemplate = handlebars.compile(
+    baseLayout(
+        `
   <div class="body">
     <h1>🚨 {{title}}</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>,</p>
@@ -293,9 +321,14 @@ const alertDangerTemplate = handlebars.compile(baseLayout(`
     </div>
     {{/if}}
   </div>
-`, { accent: BRAND.danger }));
+`,
+        { accent: BRAND.danger }
+    )
+);
 
-const alertSuccessTemplate = handlebars.compile(baseLayout(`
+const alertSuccessTemplate = handlebars.compile(
+    baseLayout(
+        `
   <div class="body">
     <h1>✅ {{title}}</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>,</p>
@@ -304,9 +337,13 @@ const alertSuccessTemplate = handlebars.compile(baseLayout(`
       ✅ Everything looks good. No further action is needed.
     </div>
   </div>
-`, { accent: BRAND.success }));
+`,
+        { accent: BRAND.success }
+    )
+);
 
-const notificationTemplate = handlebars.compile(baseLayout(`
+const notificationTemplate = handlebars.compile(
+    baseLayout(`
   <div class="body">
     <h1>{{title}}</h1>
     <p>Hi <strong style="color:#1e293b">{{name}}</strong>,</p>
@@ -314,7 +351,8 @@ const notificationTemplate = handlebars.compile(baseLayout(`
     <hr class="divider" />
     <p style="font-size:13px;">If you have questions, feel free to reach out to our support team.</p>
   </div>
-`));
+`)
+);
 
 /* ═══════════════════════════════════════
    EXPORT HELPERS

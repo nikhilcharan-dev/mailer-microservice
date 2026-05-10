@@ -10,10 +10,10 @@ export const sendEMail = async (email, subject, content) => {
             subject: subject,
             html: content,
         });
-        await logEmailEvent('raw', 'success');
+        await logEmailEvent("raw", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('raw', 'failure');
+        await logEmailEvent("raw", "failure");
         throw err;
     }
 };
@@ -26,10 +26,10 @@ export const sendEmailOTP = async (email, otp) => {
             subject: "OTP Verification",
             html: templates.getOtp(email, otp),
         });
-        await logEmailEvent('otp', 'success');
+        await logEmailEvent("otp", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('otp', 'failure');
+        await logEmailEvent("otp", "failure");
         throw err;
     }
 };
@@ -42,10 +42,10 @@ export const sendResetPasswordOTP = async (email, otp) => {
             subject: "Reset Password OTP",
             html: templates.getResetPasswordOtp(email, otp),
         });
-        await logEmailEvent('otp', 'success');
+        await logEmailEvent("otp", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('otp', 'failure');
+        await logEmailEvent("otp", "failure");
         throw err;
     }
 };
@@ -58,10 +58,10 @@ export const sendVerifyPassword = async (email) => {
             subject: "Password Verified",
             html: templates.getVerifyPassword(email),
         });
-        await logEmailEvent('forgotPassword', 'success');
+        await logEmailEvent("forgotPassword", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('forgotPassword', 'failure');
+        await logEmailEvent("forgotPassword", "failure");
         throw err;
     }
 };
@@ -74,10 +74,10 @@ export const sendForgotPassword = async (email, resetLink) => {
             subject: "Reset Your Password",
             html: templates.getForgotPassword(email, resetLink),
         });
-        await logEmailEvent('forgotPassword', 'success');
+        await logEmailEvent("forgotPassword", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('forgotPassword', 'failure');
+        await logEmailEvent("forgotPassword", "failure");
         throw err;
     }
 };
@@ -90,10 +90,10 @@ export const sendGreeting = async (email, name, org, role) => {
             subject: `Welcome to ${org}!`,
             html: templates.getGreeting(name, org, role),
         });
-        await logEmailEvent('greeting', 'success');
+        await logEmailEvent("greeting", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('greeting', 'failure');
+        await logEmailEvent("greeting", "failure");
         throw err;
     }
 };
@@ -106,10 +106,10 @@ export const sendAlertInfo = async (email, title, message) => {
             subject: title,
             html: templates.getAlertInfo(email, title, message),
         });
-        await logEmailEvent('alert', 'success');
+        await logEmailEvent("alert", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('alert', 'failure');
+        await logEmailEvent("alert", "failure");
         throw err;
     }
 };
@@ -122,10 +122,10 @@ export const sendAlertWarning = async (email, title, message, actionLink) => {
             subject: `⚠️ ${title}`,
             html: templates.getAlertWarning(email, title, message, actionLink),
         });
-        await logEmailEvent('alert', 'success');
+        await logEmailEvent("alert", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('alert', 'failure');
+        await logEmailEvent("alert", "failure");
         throw err;
     }
 };
@@ -138,10 +138,10 @@ export const sendAlertDanger = async (email, title, message, actionLink) => {
             subject: `🚨 ${title}`,
             html: templates.getAlertDanger(email, title, message, actionLink),
         });
-        await logEmailEvent('alert', 'success');
+        await logEmailEvent("alert", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('alert', 'failure');
+        await logEmailEvent("alert", "failure");
         throw err;
     }
 };
@@ -154,10 +154,10 @@ export const sendAlertSuccess = async (email, title, message) => {
             subject: `✅ ${title}`,
             html: templates.getAlertSuccess(email, title, message),
         });
-        await logEmailEvent('alert', 'success');
+        await logEmailEvent("alert", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('alert', 'failure');
+        await logEmailEvent("alert", "failure");
         throw err;
     }
 };
@@ -170,10 +170,10 @@ export const sendNotification = async (email, title, message) => {
             subject: title,
             html: templates.getNotification(email, title, message),
         });
-        await logEmailEvent('notification', 'success');
+        await logEmailEvent("notification", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('notification', 'failure');
+        await logEmailEvent("notification", "failure");
         throw err;
     }
 };
@@ -186,10 +186,10 @@ export const sendRawHTML = async (email, subject, html) => {
             subject: subject,
             html: html,
         });
-        await logEmailEvent('raw', 'success');
+        await logEmailEvent("raw", "success");
     } catch (err) {
         console.error("[Mailer Error]", err.message);
-        await logEmailEvent('raw', 'failure');
+        await logEmailEvent("raw", "failure");
         throw err;
     }
 };

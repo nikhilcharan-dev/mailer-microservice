@@ -7,4 +7,4 @@ export const services = {
         host: "smtp.office365.com",
         port: 587,
     },
-}
+};

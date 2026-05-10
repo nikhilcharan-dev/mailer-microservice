@@ -15,6 +15,6 @@ transporter.verify((err, info) => {
     } else {
         console.log("[Mail Service] Verified");
     }
-})
+});
 
 export default transporter;
