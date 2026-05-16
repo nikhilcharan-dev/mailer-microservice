@@ -7,24 +7,21 @@
 #
 # Dependency builds are cached via cargo-chef so source-only changes do not
 # trigger a full re-compile of the dependency tree (~200 crates).
-
-ARG RUST_VERSION=1.85
+#
+# Uses rust:bookworm (always latest stable Rust on Debian Bookworm) to avoid
+# MSRV mismatches as cargo-chef and its dependency tree evolve.
 
 # ── chef ────────────────────────────────────────────────────────────────────
-# Shared image with cargo-chef installed.
-FROM rust:${RUST_VERSION}-bookworm AS chef
-RUN cargo install cargo-chef --locked --version ^0.1
+FROM rust:bookworm AS chef
+RUN cargo install cargo-chef --locked
 WORKDIR /build
 
 # ── planner ────────────────────────────────────────────────────────────────
-# Walks Cargo.toml/Cargo.lock and writes recipe.json describing the dep tree.
 FROM chef AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # ── builder ────────────────────────────────────────────────────────────────
-# Builds all workspace dependencies in a cached layer (the recipe.json layer
-# is only invalidated when Cargo.lock changes), then compiles the workspace.
 FROM chef AS builder
 COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --workspace
@@ -32,7 +29,6 @@ COPY . .
 RUN cargo build --release --bin central-mailer --bin frontend
 
 # ── runtime-base ──────────────────────────────────────────────────────────
-# Slim Debian with TLS roots, libssl3 (native-tls for lettre), curl (healthcheck).
 FROM debian:bookworm-slim AS runtime-base
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -41,7 +37,6 @@ RUN apt-get update \
         curl \
         tini \
  && rm -rf /var/lib/apt/lists/*
-# Drop privileges by default
 RUN groupadd --system --gid 1001 app \
  && useradd  --system --uid 1001 --gid app --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app
@@ -59,7 +54,6 @@ CMD ["/usr/local/bin/central-mailer"]
 # ── frontend ───────────────────────────────────────────────────────────────
 FROM runtime-base AS frontend
 COPY --from=builder /build/target/release/frontend /usr/local/bin/frontend
-# The frontend reads ServeDir("frontend/static") relative to its workdir.
 COPY --chown=app:app frontend/static /app/frontend/static
 USER app
 EXPOSE 3000
