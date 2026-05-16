@@ -1,20 +1,25 @@
-name: central-mailer
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Full local stack: Mongo + Redis + Axum API + Leptos SSR dashboard.
 #
-# Typical usage:
-#   cp .env.example .env       # then edit .env
-#   docker compose up --build
+# Two usage modes:
 #
-# If you'd rather point at a hosted MongoDB (Atlas, etc.), set
-# MONGODB_URI=mongodb+srv://... in .env and skip the local mongo service:
-#   docker compose up --build redis backend frontend
+#   1. Hosted DB (e.g. MongoDB Atlas + hosted Redis) — DEFAULT
+#      cp .env.example .env       # set MONGODB_URI, REDIS_HOST/PORT/PASSWORD
+#      docker-compose up --build
+#      (the `mongo` and `redis` services are profile-gated, so they DON'T start)
+#
+#   2. Fully local — opt-in via the `local` profile
+#      docker-compose --profile local up --build
+#      (brings up mongo + redis containers in addition to the app)
+#
+# Required secrets in .env: ENCRYPTION_KEY (32-byte hex), JWT_SECRET, MONGODB_URI.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
 
+  # ── Optional local MongoDB (use --profile local) ──────────────────────────
   mongo:
+    profiles: ["local"]
     image: mongo:7
     container_name: central-mailer-mongo
     restart: unless-stopped
@@ -34,7 +39,9 @@ services:
     networks:
       - mailnet
 
+  # ── Optional local Redis (use --profile local) ────────────────────────────
   redis:
+    profiles: ["local"]
     image: redis:7-alpine
     container_name: central-mailer-redis
     restart: unless-stopped
@@ -55,6 +62,7 @@ services:
     networks:
       - mailnet
 
+  # ── Axum API server ───────────────────────────────────────────────────────
   backend:
     build:
       context: .
@@ -70,17 +78,17 @@ services:
       PORT: 8080
       RUST_LOG: ${RUST_LOG:-info,central_mailer_backend=debug}
 
-      # MongoDB — defaults to the local mongo service. Override with Atlas URI in .env.
-      MONGODB_URI: ${MONGODB_URI:-mongodb://admin:password@mongo:27017/central_mailer?authSource=admin}
+      # MongoDB — Atlas URI from .env, or local mongo if --profile local is active.
+      MONGODB_URI: ${MONGODB_URI:?MONGODB_URI must be set (Atlas URI or mongodb://...)}
       MONGODB_DATABASE: ${MONGODB_DATABASE:-central_mailer}
       MONGODB_MAX_POOL: ${MONGODB_MAX_POOL:-50}
 
-      # Redis
+      # Redis — hosted host/port/password from .env, or local redis if --profile local.
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
 
-      # Required secrets — fail fast if missing.
+      # Required secrets — fail-fast if missing.
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set (32-byte hex)}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
@@ -93,17 +101,13 @@ services:
       MAX_SUBJECT_CHARS: ${MAX_SUBJECT_CHARS:-998}
       LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-90}
 
-      # CORS / dashboard origin
+      # Frontend / CORS
       DASHBOARD_ORIGIN: ${DASHBOARD_ORIGIN:-http://localhost:3000}
       REQUIRE_HTTPS: ${REQUIRE_HTTPS:-false}
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - mailnet
 
+  # ── Leptos SSR dashboard ──────────────────────────────────────────────────
   frontend:
     build:
       context: .
@@ -118,11 +122,9 @@ services:
     environment:
       FRONTEND_PORT: 3000
       RUST_LOG: ${RUST_LOG:-info,central_mailer_frontend=debug}
-      # Resolves to the backend service inside the Docker network.
       BACKEND_URL: ${BACKEND_INTERNAL_URL:-http://backend:8080}
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - mailnet
 
