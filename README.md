@@ -9,15 +9,49 @@ Built in Rust: Axum API + Leptos SSR dashboard + MongoDB + Redis.
 
 ## Quick start (Docker)
 
+Two modes — pick one.
+
+### Mode A — hosted DB (MongoDB Atlas + hosted Redis)
+
+Most common for production / VPS deploys.
+
 ```bash
-cp .env.example .env       # then set ENCRYPTION_KEY and JWT_SECRET
-docker compose up --build
+cp .env.example .env
+# Edit .env and set at least:
+#   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority
+#   REDIS_HOST=<your hosted redis host>
+#   REDIS_PORT=<port>
+#   REDIS_PASSWORD=<password>
+#   ENCRYPTION_KEY=<openssl rand -hex 32>
+#   JWT_SECRET=<openssl rand -base64 48>
+
+docker-compose up --build
+# or, in Compose V2:
+# docker compose up --build
 ```
+
+The `mongo` and `redis` services are **profile-gated** — they will NOT start in this
+mode. Only `backend` and `frontend` come up; they connect out to your hosted services.
+
+### Mode B — fully local (containerised Mongo + Redis)
+
+```bash
+cp .env.example .env
+# Set only ENCRYPTION_KEY and JWT_SECRET; leave MONGODB_URI and REDIS_* unset
+# (they'll default to the local services inside Docker).
+
+docker-compose --profile local up --build
+```
+
+This activates the `local` profile, starting `mongo` + `redis` containers alongside
+the app.
+
+### URLs
 
 - API:       http://localhost:8080
 - Dashboard: http://localhost:3000
 
-Generate secrets:
+### Generate secrets
 
 ```bash
 openssl rand -hex 32       # ENCRYPTION_KEY (must be exactly 32 bytes)
