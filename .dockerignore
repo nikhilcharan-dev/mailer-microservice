@@ -1,10 +1,30 @@
-node_modules
-npm-debug.log*
+# Rust build artifacts — never ship these into the build context
+target/
+**/target/
+
+# Local environment / secrets
 .env
 .env.*
 !.env.example
-.git
+
+# Editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Git
+.git/
 .gitignore
-*.md
-.vscode
-.idea
+.gitattributes
+
+# Documentation / scratch
+*.log
+*.tmp
+*.bak
+
+# Docker assets that don't need to be in the build context
+docker-compose*.yml
+Dockerfile*
+.dockerignore

@@ -1,0 +1,31 @@
+[package]
+name = "central-mailer-frontend"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "frontend"
+path = "src/main.rs"
+
+[dependencies]
+shared = { path = "../shared" }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+axum = { version = "0.7", features = ["macros"] }
+axum-extra = { version = "0.9", features = ["cookie", "form"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+
+leptos = { version = "0.7", features = ["ssr"] }
+
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+dotenvy = "0.15"
+urlencoding = "2"
+time = "0.3"

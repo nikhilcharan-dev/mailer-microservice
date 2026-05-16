@@ -1,0 +1,135 @@
+name: central-mailer
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Full local stack: Mongo + Redis + Axum API + Leptos SSR dashboard.
+#
+# Typical usage:
+#   cp .env.example .env       # then edit .env
+#   docker compose up --build
+#
+# If you'd rather point at a hosted MongoDB (Atlas, etc.), set
+# MONGODB_URI=mongodb+srv://... in .env and skip the local mongo service:
+#   docker compose up --build redis backend frontend
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  mongo:
+    image: mongo:7
+    container_name: central-mailer-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--norc", "--eval", "db.adminCommand({ping:1}).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - mailnet
+
+  redis:
+    image: redis:7-alpine
+    container_name: central-mailer-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+      --save 60 1
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ${REDIS_PASSWORD:+-a ${REDIS_PASSWORD}} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mailnet
+
+  backend:
+    build:
+      context: .
+      target: backend
+      args:
+        RUST_VERSION: "1.83"
+    image: central-mailer-backend:latest
+    container_name: central-mailer-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      PORT: 8080
+      RUST_LOG: ${RUST_LOG:-info,central_mailer_backend=debug}
+
+      # MongoDB — defaults to the local mongo service. Override with Atlas URI in .env.
+      MONGODB_URI: ${MONGODB_URI:-mongodb://admin:password@mongo:27017/central_mailer?authSource=admin}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-central_mailer}
+      MONGODB_MAX_POOL: ${MONGODB_MAX_POOL:-50}
+
+      # Redis
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+      # Required secrets — fail fast if missing.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set (32-byte hex)}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
+
+      # Limits
+      DEFAULT_DAILY_LIMIT: ${DEFAULT_DAILY_LIMIT:-500}
+      MAX_TRANSPORTS_PER_USER: ${MAX_TRANSPORTS_PER_USER:-10}
+      MAX_TEMPLATES_PER_USER: ${MAX_TEMPLATES_PER_USER:-50}
+      MAX_HTML_BYTES: ${MAX_HTML_BYTES:-1048576}
+      MAX_SUBJECT_CHARS: ${MAX_SUBJECT_CHARS:-998}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-90}
+
+      # CORS / dashboard origin
+      DASHBOARD_ORIGIN: ${DASHBOARD_ORIGIN:-http://localhost:3000}
+      REQUIRE_HTTPS: ${REQUIRE_HTTPS:-false}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mailnet
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+      args:
+        RUST_VERSION: "1.83"
+    image: central-mailer-frontend:latest
+    container_name: central-mailer-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      FRONTEND_PORT: 3000
+      RUST_LOG: ${RUST_LOG:-info,central_mailer_frontend=debug}
+      # Resolves to the backend service inside the Docker network.
+      BACKEND_URL: ${BACKEND_INTERNAL_URL:-http://backend:8080}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - mailnet
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  mailnet:
+    driver: bridge

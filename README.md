@@ -1,179 +1,81 @@
-# 📧 Mailer Service
+# Central Mailer
 
-## WorkPing – Internal Microservice
+A multi-tenant, self-serve email delivery platform. Users register, connect their own
+SMTP transports, upload HTML templates with `{{variable}}` tokens, and send mail
+through a single API using their own credentials. The platform never owns the sending
+domain — it is a pure delivery proxy.
 
-A reusable, plug-and-play **mailer & OTP microservice** built for **WorkPing** and other internal products.  
-Handles OTP generation, delivery, verification, and expiry using **Redis** as the source of truth.
+Built in Rust: Axum API + Leptos SSR dashboard + MongoDB + Redis.
 
-Designed to be **stateless at the API layer**, horizontally scalable, and easy to integrate.
+## Quick start (Docker)
 
----
-
-## 🚀 Features
-
-- 📩 Send OTP via Email
-- 🔢 Secure OTP generation
-- 🧠 Redis-based OTP storage
-- ⏳ Automatic OTP expiry (TTL)
-- ✅ OTP verification & invalidation
-- 🔁 Reusable across multiple products
-- 🐳 Fully Dockerized
-- 🧩 Docker Compose ready
-- 🛡️ API key based internal authorization
-- 📜 Request logging via Morgan
-
----
-
-## 🧠 OTP Architecture (Redis-Based)
-
-OTPs are stored in Redis with a TTL.
-
-### Flow
-
-1. Client requests OTP
-2. Server generates OTP
-3. OTP stored in Redis with expiry
-4. OTP sent via email
-5. Client submits OTP for verification
-6. OTP is validated and deleted
-
-✔️ One-time OTP  
-✔️ Strong replay protection  
-✔️ Simple and reliable  
-
----
-
-## 🧪 API Endpoints
-
-### Send Email OTP
-```http
-POST /api/v1/send-email-otp
-```
-
-**Headers**
-```http
-Authorization: <INTERNAL_SECRET>
-```
-
-**Body**
-```json
-{
-  "email": "user@example.com"
-}
-```
-
-**Response**
-```json
-{
-  "status": "success"
-}
-```
-
----
-
-### Verify Email OTP
-```http
-POST /api/v1/verify-email-otp
-```
-
-**Headers**
-```http
-Authorization: <INTERNAL_SECRET>
-```
-
-**Body**
-```json
-{
-  "email": "user@example.com",
-  "otp": "123456"
-}
-```
-
-**Response**
-```json
-{
-  "status": "success"
-}
-```
-
----
-
-## 🔐 Environment Variables
-
-Create a `.env` file:
-
-```env
-PORT=3000
-SECRET=internal_service_secret
-
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USER=example@gmail.com
-MAIL_PASS=app_password
-```
-
----
-
-## 🐳 Docker
-
-### Build Image
 ```bash
-docker build -t workping-mailer .
+cp .env.example .env       # then set ENCRYPTION_KEY and JWT_SECRET
+docker compose up --build
 ```
 
-### Run Container
+- API:       http://localhost:8080
+- Dashboard: http://localhost:3000
+
+Generate secrets:
+
 ```bash
-docker run -d \
-  -p 3000:3000 \
-  --env-file .env \
-  workping-mailer
+openssl rand -hex 32       # ENCRYPTION_KEY (must be exactly 32 bytes)
+openssl rand -base64 48    # JWT_SECRET
 ```
 
----
+## Quick start (local dev, no Docker)
 
-## 🔌 Plug-and-Play Usage
+You'll need running Mongo + Redis instances. Then:
 
-Any internal service can consume this API by:
-- Adding the `Authorization` header
-- Sending an email payload
+```bash
+cargo run -p central-mailer-backend       # API on :8080
+cargo run -p central-mailer-frontend      # Dashboard on :3000 (separate terminal)
+```
 
-No product-specific coupling.  
-OTP logic stays centralized.
+## Project layout
 
----
+```
+.
+├── backend/        Axum API server (the actual send service)
+├── frontend/       Leptos SSR dashboard (browser UI)
+├── shared/         Serde types shared between the two crates
+├── Dockerfile      Multi-stage build → 2 final images (backend, frontend)
+├── docker-compose.yml
+└── Cargo.toml      Workspace root
+```
 
-## 🛡️ Security Notes
+## API surface
 
-- OTPs are stored with TTL (default: 30 mins)
-- OTP deleted immediately after successful verification
-- API protected via shared secret
-- Redis acts as the single source of truth
+All endpoints under `/v1`:
 
----
+| Group | Endpoint | Auth |
+|---|---|---|
+| Auth | `POST /v1/auth/signup`, `/auth/signin`, `/auth/apikey/rotate` | public / JWT |
+| Transports | `POST/GET/PUT/DELETE /v1/transports[/:name]`, `/v1/transports/:name/verify` | JWT |
+| Templates | `POST/GET/PUT/DELETE /v1/templates[/:name]` | JWT |
+| **Send** | `POST /v1/send/:username/:transport/:template` | **API key** |
+| Logs | `GET /v1/logs?transport=&template=&status=&page=` | JWT |
+| Account | `GET /v1/account`, `DELETE /v1/account` | JWT |
+| Health | `GET /health`, `GET /ready` | none |
 
-## 🧱 Tech Stack
+Send example:
 
-- Node.js (ESM)
-- Express.js
-- Redis
-- Nodemailer
-- Docker & Docker Compose
+```bash
+curl -X POST http://localhost:8080/v1/send/alice/gmail/otp \
+  -H "Authorization: <your_api_key>" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"bob@example.com","otp":"847291"}'
+```
 
----
+## Architecture
 
-## 🗺️ Roadmap
+Full design — data models, encryption, caching, rate limiting, send flow — lives in
+the architecture doc (see git history for `ARCHITECTURE.md`).
 
-- 📱 Phone OTP support
-- 🔄 Stateless JWT OTP (optional mode)
-- ⏱️ Rate limiting
-- 📊 Metrics & health checks
-- 🔐 mTLS / service-to-service auth
+## Stopping / cleaning
 
----
-
-## ✨ Maintained by
-
-**WorkPing Devs**
+```bash
+docker compose down              # stop containers
+docker compose down -v           # also wipe mongo + redis volumes
+```
