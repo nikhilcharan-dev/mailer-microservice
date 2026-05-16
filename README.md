@@ -9,19 +9,16 @@ Built in Rust: Axum API + Leptos SSR dashboard + MongoDB + Redis.
 
 ## Quick start (Docker)
 
-Two modes — pick one.
-
-### Mode A — hosted DB (MongoDB Atlas + hosted Redis)
-
-Most common for production / VPS deploys.
+The compose stack ships only `backend` + `frontend`. MongoDB and Redis are expected
+to be **hosted** (e.g. MongoDB Atlas + a hosted Redis like Upstash / Redis Cloud).
 
 ```bash
 cp .env.example .env
-# Edit .env and set at least:
+# Edit .env and set:
 #   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority
-#   REDIS_HOST=<your hosted redis host>
-#   REDIS_PORT=<port>
-#   REDIS_PASSWORD=<password>
+#   REDIS_HOST=<your hosted redis host>   # NOT 127.0.0.1 inside Docker
+#   REDIS_PORT=6379
+#   REDIS_PASSWORD=<your redis password>
 #   ENCRYPTION_KEY=<openssl rand -hex 32>
 #   JWT_SECRET=<openssl rand -base64 48>
 
@@ -29,22 +26,6 @@ docker-compose up --build
 # or, in Compose V2:
 # docker compose up --build
 ```
-
-The `mongo` and `redis` services are **profile-gated** — they will NOT start in this
-mode. Only `backend` and `frontend` come up; they connect out to your hosted services.
-
-### Mode B — fully local (containerised Mongo + Redis)
-
-```bash
-cp .env.example .env
-# Set only ENCRYPTION_KEY and JWT_SECRET; leave MONGODB_URI and REDIS_* unset
-# (they'll default to the local services inside Docker).
-
-docker-compose --profile local up --build
-```
-
-This activates the `local` profile, starting `mongo` + `redis` containers alongside
-the app.
 
 ### URLs
 
@@ -110,6 +91,6 @@ the architecture doc (see git history for `ARCHITECTURE.md`).
 ## Stopping / cleaning
 
 ```bash
-docker compose down              # stop containers
-docker compose down -v           # also wipe mongo + redis volumes
+docker-compose down              # stop containers
+docker-compose down --rmi local  # also remove built images
 ```

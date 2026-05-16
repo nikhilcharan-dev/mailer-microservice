@@ -1,68 +1,22 @@
+version: "3.7"
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Full local stack: Mongo + Redis + Axum API + Leptos SSR dashboard.
+# Central Mailer — backend + frontend only.
+# MongoDB and Redis are hosted (Atlas / hosted Redis), wired up via .env.
 #
-# This file uses ONLY plain ${VAR} interpolation (no :-defaults, no :?errors,
-# no :+alternates) so it works with old docker-compose V1 (< 1.27) as well as
-# the modern Compose V2 plugin.
+# Required in .env:
+#   MONGODB_URI       (Atlas URI, e.g. mongodb+srv://...)
+#   REDIS_HOST        (your hosted Redis hostname — not 127.0.0.1)
+#   REDIS_PORT        (usually 6379)
+#   REDIS_PASSWORD    (your hosted Redis password)
+#   ENCRYPTION_KEY    (32-byte hex; openssl rand -hex 32)
+#   JWT_SECRET        (long random string; openssl rand -base64 48)
 #
-# Modes:
-#
-#   A) Hosted DB (Atlas + hosted Redis) — DEFAULT
-#      Your .env must set: MONGODB_URI, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD,
-#                          ENCRYPTION_KEY, JWT_SECRET
-#      Run:   docker-compose up --build
-#
-#   B) Fully local — opt-in
-#      Run:   docker-compose --profile local up --build
-#      Adds the `mongo` and `redis` containers; .env should set MONGODB_URI to
-#      mongodb://admin:password@mongo:27017/central_mailer?authSource=admin
-#      and REDIS_HOST=redis.
+# Run:   docker-compose up --build
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
 
-  # ── Optional local MongoDB (use --profile local) ──────────────────────────
-  mongo:
-    profiles: ["local"]
-    image: mongo:7
-    container_name: central-mailer-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--norc", "--eval", "db.adminCommand({ping:1}).ok"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-    networks:
-      - mailnet
-
-  # ── Optional local Redis (use --profile local) ────────────────────────────
-  redis:
-    profiles: ["local"]
-    image: redis:7-alpine
-    container_name: central-mailer-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    command: redis-server --save 60 1 --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - mailnet
-
-  # ── Axum API server ───────────────────────────────────────────────────────
   backend:
     build:
       context: .
@@ -75,10 +29,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # — runtime config (hard-coded sensible defaults; override here if needed) —
+      # — runtime config (hard-coded sensible defaults) —
       PORT: "8080"
       RUST_LOG: "info,central_mailer_backend=debug"
-      MONGODB_DATABASE: central_mailer
+      MONGODB_DATABASE: "central_mailer"
       MONGODB_MAX_POOL: "50"
       JWT_EXPIRY_HOURS: "24"
       DEFAULT_DAILY_LIMIT: "500"
@@ -90,7 +44,7 @@ services:
       DASHBOARD_ORIGIN: "http://localhost:3000"
       REQUIRE_HTTPS: "false"
 
-      # — user-supplied connection strings & secrets (must be set in .env) —
+      # — connection strings & secrets (must be in .env) —
       MONGODB_URI: ${MONGODB_URI}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
@@ -100,7 +54,6 @@ services:
     networks:
       - mailnet
 
-  # ── Leptos SSR dashboard ──────────────────────────────────────────────────
   frontend:
     build:
       context: .
@@ -120,10 +73,6 @@ services:
       - backend
     networks:
       - mailnet
-
-volumes:
-  mongo_data:
-  redis_data:
 
 networks:
   mailnet:
