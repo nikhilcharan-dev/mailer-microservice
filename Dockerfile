@@ -8,7 +8,7 @@
 # Dependency builds are cached via cargo-chef so source-only changes do not
 # trigger a full re-compile of the dependency tree (~200 crates).
 
-ARG RUST_VERSION=1.83
+ARG RUST_VERSION=1.85
 
 # ── chef ────────────────────────────────────────────────────────────────────
 # Shared image with cargo-chef installed.

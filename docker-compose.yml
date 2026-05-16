@@ -22,7 +22,7 @@ services:
       context: .
       target: backend
       args:
-        RUST_VERSION: "1.83"
+        RUST_VERSION: "1.85"
     image: central-mailer-backend:latest
     container_name: central-mailer-backend
     restart: unless-stopped
@@ -59,7 +59,7 @@ services:
       context: .
       target: frontend
       args:
-        RUST_VERSION: "1.83"
+        RUST_VERSION: "1.85"
     image: central-mailer-frontend:latest
     container_name: central-mailer-frontend
     restart: unless-stopped
