@@ -53,6 +53,7 @@ pub async fn list_page(jar: CookieJar, Query(q): Query<Flash_>) -> Response {
                     view!{ <p style="color:var(--muted);margin:0;">"No transports yet — add one below."</p> }.into_any()
                 } else {
                     view!{
+                        // Table: rows only — dialogs must NOT be inside tbody (invalid HTML)
                         <table>
                             <thead>
                                 <tr>
@@ -67,56 +68,57 @@ pub async fn list_page(jar: CookieJar, Query(q): Query<Flash_>) -> Response {
                                     let port = t.get("smtp_port").and_then(|x| x.as_u64()).unwrap_or(0);
                                     let tls = t.get("tls_mode").and_then(|x| x.as_str()).unwrap_or("").to_string();
                                     let from = t.get("from_email").and_then(|x| x.as_str()).unwrap_or("").to_string();
-                                    let dialog_id = format!("test-dialog-{name}");
-                                    let open_js = format!("document.getElementById('{dialog_id}').showModal()");
+                                    let open_js = format!("document.getElementById('test-dialog-{name}').showModal()");
                                     let name_d = name.clone();
-                                    let name_v = name.clone();
-                                    let dialog_id2 = dialog_id.clone();
                                     view!{
                                         <tr>
-                                            <td><code>{name.clone()}</code></td>
+                                            <td><code>{name}</code></td>
                                             <td>{host}</td>
                                             <td>{port.to_string()}</td>
                                             <td><span class="tag muted">{tls}</span></td>
                                             <td>{from}</td>
                                             <td style="text-align:right;display:flex;gap:6px;justify-content:flex-end;">
-                                                // Test button opens dialog
                                                 <button class="btn btn-ghost" type="button"
-                                                    onclick={open_js}>
-                                                    "Send test"
-                                                </button>
+                                                    onclick={open_js}>"Send test"</button>
                                                 <form method="POST" action={format!("/transports/{name_d}/delete")} style="display:inline"
                                                       onsubmit="return confirm('Delete this transport?')">
                                                     <button class="btn btn-danger" type="submit">"Delete"</button>
                                                 </form>
                                             </td>
                                         </tr>
-                                        // ── Test-email dialog ──────────────
-                                        <dialog id={dialog_id2} class="test-dialog">
-                                            <div class="dialog-header">
-                                                <h3>{format!("Test transport: {name_v}")}</h3>
-                                                <button class="dialog-close" type="button"
-                                                    onclick="this.closest('dialog').close()">"✕"</button>
-                                            </div>
-                                            <p class="dialog-sub">
-                                                "Enter a recipient address. A real test email will be sent "
-                                                "through this transport so you can confirm delivery."
-                                            </p>
-                                            <form method="POST" action={format!("/transports/{}/verify", name_v)}>
-                                                <label>"Recipient email"</label>
-                                                <input type="email" name="test_to"
-                                                    placeholder="you@example.com" required autofocus/>
-                                                <div class="actions" style="margin-top:14px;">
-                                                    <button class="btn" type="submit">"Send test email"</button>
-                                                    <button class="btn btn-ghost" type="button"
-                                                        onclick="this.closest('dialog').close()">"Cancel"</button>
-                                                </div>
-                                            </form>
-                                        </dialog>
                                     }
                                 }).collect_view()}
                             </tbody>
                         </table>
+                        // Dialogs rendered after the table — valid DOM placement
+                        {items.iter().map(|t| {
+                            let name = t.get("name").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                            let dialog_id = format!("test-dialog-{name}");
+                            let name2 = name.clone();
+                            view!{
+                                <dialog id={dialog_id} class="test-dialog">
+                                    <div class="dialog-header">
+                                        <h3>{format!("Test — {name}")}</h3>
+                                        <button class="dialog-close" type="button"
+                                            onclick="this.closest('dialog').close()">"✕"</button>
+                                    </div>
+                                    <p class="dialog-sub">
+                                        "Enter a recipient address. A real test email will be sent "
+                                        "through this transport so you can confirm delivery."
+                                    </p>
+                                    <form method="POST" action={format!("/transports/{name2}/verify")}>
+                                        <label>"Recipient email"</label>
+                                        <input type="email" name="test_to"
+                                            placeholder="you@example.com" required autofocus/>
+                                        <div class="actions" style="margin-top:14px;">
+                                            <button class="btn" type="submit">"Send test email"</button>
+                                            <button class="btn btn-ghost" type="button"
+                                                onclick="this.closest('dialog').close()">"Cancel"</button>
+                                        </div>
+                                    </form>
+                                </dialog>
+                            }
+                        }).collect_view()}
                     }.into_any()
                 }}
             </div>

@@ -380,63 +380,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "central-mailer-backend"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "argon2",
- "async-trait",
- "axum",
- "chrono",
- "dotenvy",
- "futures",
- "handlebars",
- "hex",
- "jsonwebtoken",
- "lettre",
- "mongodb",
- "once_cell",
- "rand 0.8.6",
- "redis",
- "regex",
- "serde",
- "serde_json",
- "shared",
- "subtle",
- "thiserror 1.0.69",
- "tokio",
- "tower 0.4.13",
- "tower-http 0.5.2",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "central-mailer-frontend"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "axum-extra",
- "chrono",
- "dotenvy",
- "leptos",
- "reqwest",
- "serde",
- "serde_json",
- "shared",
- "time",
- "tokio",
- "tower 0.4.13",
- "tower-http 0.5.2",
- "tracing",
- "tracing-subscriber",
- "urlencoding",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -481,6 +424,63 @@ checksum = "773f3b9af64447d2ce9850330c473515014aa235e6a783b02db81ff39e4a3dad"
 dependencies = [
  "crypto-common",
  "inout",
+]
+
+[[package]]
+name = "cloud-mailer-backend"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "argon2",
+ "async-trait",
+ "axum",
+ "chrono",
+ "dotenvy",
+ "futures",
+ "handlebars",
+ "hex",
+ "jsonwebtoken",
+ "lettre",
+ "mongodb",
+ "once_cell",
+ "rand 0.8.6",
+ "redis",
+ "regex",
+ "serde",
+ "serde_json",
+ "shared",
+ "subtle",
+ "thiserror 1.0.69",
+ "tokio",
+ "tower 0.4.13",
+ "tower-http 0.5.2",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "cloud-mailer-frontend"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "axum-extra",
+ "chrono",
+ "dotenvy",
+ "leptos",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "shared",
+ "time",
+ "tokio",
+ "tower 0.4.13",
+ "tower-http 0.5.2",
+ "tracing",
+ "tracing-subscriber",
+ "urlencoding",
 ]
 
 [[package]]

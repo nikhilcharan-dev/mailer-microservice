@@ -29,7 +29,7 @@ pub async fn roadmap_page() -> Response {
 
                             <div class="rm-card">
                                 <div class="rm-icon">"🔑"</div>
-                                <h3>"OAuth2 Gmail &amp; Outlook"</h3>
+                                <h3>"OAuth2 Gmail & Outlook"</h3>
                                 <p>
                                     "Replace app-password workarounds with real OAuth2 flows. "
                                     "Click-to-authorize your Gmail or Microsoft 365 account — "
@@ -56,7 +56,7 @@ pub async fn roadmap_page() -> Response {
 
                             <div class="rm-card">
                                 <div class="rm-icon">"⚠️"</div>
-                                <h3>"Bounce &amp; Complaint Handling"</h3>
+                                <h3>"Bounce & Complaint Handling"</h3>
                                 <p>
                                     "Automatic suppression of hard-bounced addresses and complaint-flagged "
                                     "recipients. Protects your sending reputation and keeps logs clean."
@@ -94,7 +94,7 @@ pub async fn roadmap_page() -> Response {
 
                             <div class="rm-card">
                                 <div class="rm-icon">"👥"</div>
-                                <h3>"Team Workspaces &amp; RBAC"</h3>
+                                <h3>"Team Workspaces & RBAC"</h3>
                                 <p>
                                     "Invite teammates to a shared workspace with role-based access control. "
                                     "Admins manage transports; developers call the send API — "
@@ -136,7 +136,7 @@ pub async fn roadmap_page() -> Response {
 
                             <div class="rm-card">
                                 <div class="rm-icon">"⏰"</div>
-                                <h3>"Email Scheduling &amp; Batch Sends"</h3>
+                                <h3>"Email Scheduling & Batch Sends"</h3>
                                 <p>
                                     "Schedule an email for a future time or send to a list of recipients "
                                     "in a single API call with per-recipient variable interpolation. "

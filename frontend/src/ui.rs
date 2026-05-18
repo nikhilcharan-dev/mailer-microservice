@@ -32,7 +32,10 @@ pub fn Layout(
             <body>
                 <div class="app">
                     <aside class="sidebar">
-                        <a href="/" class="brand">"☁ cloudMailer"</a>
+                        <a href="/" class="brand">
+                            <img src="/static/logo.svg" width="26" height="20" alt=""/>
+                            "cloudMailer"
+                        </a>
                         <nav>
                             {nav_item("/dashboard", "Overview")}
                             {nav_item("/transports", "Transports")}
@@ -93,7 +96,10 @@ pub fn PublicLayout(
             </head>
             <body class="public">
                 <header class="pub-nav">
-                    <a class="pub-brand" href="/">"☁ cloudMailer"</a>
+                    <a class="pub-brand" href="/">
+                        <img src="/static/logo.svg" width="30" height="22" alt=""/>
+                        "cloudMailer"
+                    </a>
                     <nav class="pub-nav-links">
                         <a href="/docs">"API Docs"</a>
                         <a href="/roadmap">"Roadmap"</a>

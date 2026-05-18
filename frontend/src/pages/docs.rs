@@ -312,9 +312,10 @@ r#"{
                         <div class="docs-section send-section" id="send">
                             <h2>"Send"</h2>
                             <p class="section-note">
-                                "The send endpoint uses an "
+                                "All send endpoints use an "
                                 <strong>"API key"</strong>
-                                " (not JWT) so you can call it from any backend safely."
+                                " (not JWT) so you can call them safely from any backend. "
+                                "Templates are optional — you can pass raw HTML directly."
                             </p>
 
                             <div class="endpoint-block endpoint-featured">
@@ -324,7 +325,7 @@ r#"{
                                     <span class="ep-auth">"API key"</span>
                                 </div>
                                 <p>
-                                    "Send an email. The body is a flat JSON object whose keys map to the "
+                                    "Send using a saved template. The body is a flat JSON object whose keys map to the "
                                     "template's " <code>"{{variables}}"</code>
                                     ". The mandatory " <code>"to"</code>
                                     " field sets the recipient."
@@ -344,8 +345,8 @@ r#"{
                                         <div class="ep-label">"Response 200"</div>
                                         <pre class="code-block">
 r#"{
-  "status": "sent",
-  "message_id": "SmtpResponse { ... }"
+  "status": "success",
+  "message_id": "..."
 }"#
                                         </pre>
                                     </div>
@@ -360,8 +361,50 @@ r#"curl -X POST {BASE}/v1/send/alice/gmail/otp \
                                 <div class="send-note">
                                     <strong>"Rate limited:"</strong>
                                     " subject to your account's daily send quota. "
-                                    "Check remaining quota at " <code>"/v1/account"</code>"."
+                                    "Check remaining at " <code>"/v1/account"</code>"."
                                 </div>
+                            </div>
+
+                            <div class="endpoint-block endpoint-featured">
+                                <div class="endpoint-header">
+                                    <span class="method-tag post">"POST"</span>
+                                    <code class="ep-path">"/v1/send/:username/:transport"</code>
+                                    <span class="ep-auth">"API key"</span>
+                                </div>
+                                <p>
+                                    "Send a raw email with no template. Pass "
+                                    <code>"subject"</code>" and "<code>"body_html"</code>
+                                    " directly in the request body. Logged with template "
+                                    <code>"\"<raw>\""</code>"."
+                                </p>
+                                <div class="ep-grid">
+                                    <div>
+                                        <div class="ep-label">"Request body"</div>
+                                        <pre class="code-block">
+r#"{
+  "to": "bob@example.com",
+  "subject": "Hello Bob",
+  "body_html": "<p>Hi Bob, this is a raw email.</p>"
+}"#
+                                        </pre>
+                                    </div>
+                                    <div>
+                                        <div class="ep-label">"Response 200"</div>
+                                        <pre class="code-block">
+r#"{
+  "status": "success",
+  "message_id": "..."
+}"#
+                                        </pre>
+                                    </div>
+                                </div>
+                                <div class="ep-label">"Example"</div>
+                                <pre class="code-block">{format!(
+r#"curl -X POST {BASE}/v1/send/alice/gmail \
+  -H "Authorization: cm_live_xxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{{"to":"bob@example.com","subject":"Hello","body_html":"<p>Hi Bob!</p>"}}'"#
+                                )}</pre>
                             </div>
                         </div>
 

@@ -18,11 +18,12 @@ use crate::models::log::LogDoc;
 use crate::templates::render;
 
 pub fn router() -> Router<AppState> {
-    Router::new().route(
-        "/send/:username/:transport/:template",
-        post(send_handler),
-    )
+    Router::new()
+        .route("/send/:username/:transport/:template", post(send_handler))
+        .route("/send/:username/:transport", post(send_raw_handler))
 }
+
+// ── Template send ─────────────────────────────────────────────────────────────
 
 async fn send_handler(
     State(state): State<AppState>,
@@ -32,25 +33,17 @@ async fn send_handler(
 ) -> ApiResult<Json<serde_json::Value>> {
     let started = Instant::now();
 
-    // 1. Verify URL :username matches the API key owner
     if username != identity.username {
-        return Err(ApiError::forbidden(
-            "API key does not own this username",
-        ));
+        return Err(ApiError::forbidden("API key does not own this username"));
     }
 
-    // 2. Atomic rate-limit reservation
     let uid_hex = identity.user_id.to_hex();
     let n = rate_limit::reserve_daily(&state.redis, &uid_hex).await?;
     if n as u32 > identity.daily_limit {
         rate_limit::release_daily(&state.redis, &uid_hex).await;
-        return Err(ApiError::rate_limited(
-            "rate_limited",
-            "daily send limit reached",
-        ));
+        return Err(ApiError::rate_limited("rate_limited", "daily send limit reached"));
     }
 
-    // 3. Resolve template (cache → negcache → MongoDB)
     let template = match load_template(&state, &uid_hex, &template_name).await {
         Ok(Some(t)) => t,
         Ok(None) => {
@@ -63,7 +56,6 @@ async fn send_handler(
         }
     };
 
-    // 4. Validate that all required template variables exist in body
     let obj = body
         .as_object()
         .ok_or_else(|| ApiError::bad_request("invalid_body", "body must be a JSON object"))?;
@@ -93,7 +85,6 @@ async fn send_handler(
         }
     }
 
-    // 5. Resolve transport (cache → MongoDB → decrypt → cache)
     let transport_cfg = match load_transport(&state, &uid_hex, &transport_name).await {
         Ok(Some(c)) => c,
         Ok(None) => {
@@ -106,7 +97,6 @@ async fn send_handler(
         }
     };
 
-    // 6. Render template
     let subject_override = obj.get("subject").and_then(|v| v.as_str());
     let subject_template = subject_override.unwrap_or(&template.subject);
     let rendered_subject = render::render(subject_template, &body)
@@ -114,68 +104,128 @@ async fn send_handler(
     let rendered_html = render::render(&template.html, &body)
         .map_err(|e| ApiError::bad_request("render_failed", e.to_string()))?;
 
-    // 7. Build transport + send with timeout
     let smtp_transport = smtp::build_transport(&transport_cfg)
         .map_err(|e| ApiError::internal(format!("transport build failed: {e}")))?;
-    let outcome = smtp::send(
-        &smtp_transport,
-        &transport_cfg,
-        &to,
-        &rendered_subject,
-        rendered_html,
-    )
-    .await;
+    let outcome = smtp::send(&smtp_transport, &transport_cfg, &to, &rendered_subject, rendered_html).await;
 
-    let duration_ms = started.elapsed().as_millis().min(u32::MAX as u128) as u32;
-    let (status_str, error_str, response): (&str, Option<String>, ApiResult<Json<Value>>) = match &outcome {
-        SendOutcome::Ok(mid) => (
-            "success",
-            None,
-            Ok(Json(json!({ "status": "success", "message_id": mid }))),
-        ),
-        SendOutcome::Failed(e) => (
-            "failed",
-            Some(e.clone()),
-            Err(ApiError::new(
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "smtp_failed",
-                "SMTP delivery failed",
-            )),
-        ),
-        SendOutcome::TimedOut => (
-            "failed",
-            Some("timeout".to_string()),
-            Err(ApiError::new(
-                axum::http::StatusCode::GATEWAY_TIMEOUT,
-                "smtp_timeout",
-                "SMTP send timed out",
-            )),
-        ),
+    dispatch_log(state, identity.user_id, uid_hex, transport_name, template_name, to, started, &outcome).await;
+    outcome_to_response(outcome)
+}
+
+// ── Raw send (no template) ────────────────────────────────────────────────────
+
+async fn send_raw_handler(
+    State(state): State<AppState>,
+    Extension(identity): Extension<AuthIdentity>,
+    Path((username, transport_name)): Path<(String, String)>,
+    Json(body): Json<Value>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let started = Instant::now();
+
+    if username != identity.username {
+        return Err(ApiError::forbidden("API key does not own this username"));
+    }
+
+    let uid_hex = identity.user_id.to_hex();
+    let n = rate_limit::reserve_daily(&state.redis, &uid_hex).await?;
+    if n as u32 > identity.daily_limit {
+        rate_limit::release_daily(&state.redis, &uid_hex).await;
+        return Err(ApiError::rate_limited("rate_limited", "daily send limit reached"));
+    }
+
+    let obj = body
+        .as_object()
+        .ok_or_else(|| ApiError::bad_request("invalid_body", "body must be a JSON object"))?;
+    let to = obj
+        .get("to")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::bad_request("missing_to", "'to' field is required"))?
+        .to_string();
+    if !crate::validate::is_email(&to) {
+        rate_limit::release_daily(&state.redis, &uid_hex).await;
+        return Err(ApiError::bad_request("invalid_to", "'to' is not a valid email"));
+    }
+    let subject = obj
+        .get("subject")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::bad_request("missing_subject", "'subject' field is required"))?
+        .to_string();
+    let body_html = obj
+        .get("body_html")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::bad_request("missing_body_html", "'body_html' field is required"))?
+        .to_string();
+
+    let transport_cfg = match load_transport(&state, &uid_hex, &transport_name).await {
+        Ok(Some(c)) => c,
+        Ok(None) => {
+            rate_limit::release_daily(&state.redis, &uid_hex).await;
+            return Err(ApiError::not_found("transport not found"));
+        }
+        Err(e) => {
+            rate_limit::release_daily(&state.redis, &uid_hex).await;
+            return Err(e);
+        }
     };
 
-    // 8. Async side-effects: release on failure, write log
+    let smtp_transport = smtp::build_transport(&transport_cfg)
+        .map_err(|e| ApiError::internal(format!("transport build failed: {e}")))?;
+    let outcome = smtp::send(&smtp_transport, &transport_cfg, &to, &subject, body_html).await;
+
+    dispatch_log(state, identity.user_id, uid_hex, transport_name, "<raw>".to_string(), to, started, &outcome).await;
+    outcome_to_response(outcome)
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+fn outcome_to_response(outcome: SendOutcome) -> ApiResult<Json<Value>> {
+    match outcome {
+        SendOutcome::Ok(mid) => Ok(Json(json!({ "status": "success", "message_id": mid }))),
+        SendOutcome::Failed(_) => Err(ApiError::new(
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "smtp_failed",
+            "SMTP delivery failed",
+        )),
+        SendOutcome::TimedOut => Err(ApiError::new(
+            axum::http::StatusCode::GATEWAY_TIMEOUT,
+            "smtp_timeout",
+            "SMTP send timed out",
+        )),
+    }
+}
+
+async fn dispatch_log(
+    state: AppState,
+    user_id: mongodb::bson::oid::ObjectId,
+    uid_hex: String,
+    transport_name: String,
+    template_name: String,
+    to: String,
+    started: Instant,
+    outcome: &SendOutcome,
+) {
+    let duration_ms = started.elapsed().as_millis().min(u32::MAX as u128) as u32;
     let was_failed = !matches!(outcome, SendOutcome::Ok(_));
+    let status = if was_failed { "failed" } else { "success" }.to_string();
+    let error = match outcome {
+        SendOutcome::Failed(e) => Some(e.clone()),
+        SendOutcome::TimedOut => Some("timeout".to_string()),
+        _ => None,
+    };
     let redis = state.redis.clone();
     let db = state.db.clone();
-    let user_id = identity.user_id;
-    let uid_hex_clone = uid_hex.clone();
-    let transport_name_clone = transport_name.clone();
-    let template_name_clone = template_name.clone();
-    let to_clone = to.clone();
-    let error_clone = error_str.clone();
-    let status_owned = status_str.to_string();
     tokio::spawn(async move {
         if was_failed {
-            rate_limit::release_daily(&redis, &uid_hex_clone).await;
+            rate_limit::release_daily(&redis, &uid_hex).await;
         }
         let log_doc = LogDoc {
             id: None,
             user_id,
-            transport_name: transport_name_clone,
-            template_name: template_name_clone,
-            to: to_clone,
-            status: status_owned,
-            error: error_clone,
+            transport_name,
+            template_name,
+            to,
+            status,
+            error,
             duration_ms,
             sent_at: BsonDt::now(),
         };
@@ -183,8 +233,6 @@ async fn send_handler(
             tracing::warn!("delivery log write failed: {e}");
         }
     });
-
-    response
 }
 
 async fn load_template(
@@ -236,11 +284,7 @@ async fn load_transport(
         Some(doc) => {
             let pass = state
                 .keyring
-                .decrypt(
-                    &doc.smtp_pass_enc.bytes,
-                    &doc.smtp_pass_nonce.bytes,
-                    doc.key_version,
-                )
+                .decrypt(&doc.smtp_pass_enc.bytes, &doc.smtp_pass_nonce.bytes, doc.key_version)
                 .map_err(|e| {
                     tracing::error!("decrypt: {e}");
                     ApiError::internal("could not decrypt credentials")

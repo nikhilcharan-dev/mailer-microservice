@@ -28,12 +28,10 @@ pub async fn home() -> Response {
                         </div>
                         <div class="hero-code">
                             <div class="code-label">"Send an email in one request"</div>
-                            <pre class="code-preview">
-"curl -X POST http://144.24.132.166:8080/v1/send/alice/gmail/otp \
-  -H \"Authorization: cm_live_xxxxxxxxxxxxx\" \
-  -H \"Content-Type: application/json\" \
-  -d '{\"to\":\"bob@example.com\",\"otp\":\"847291\"}'"
-                            </pre>
+                            <pre class="code-preview">{r#"curl -X POST http://144.24.132.166:8080/v1/send/alice/gmail/otp \
+  -H "Authorization: cm_live_xxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"bob@example.com","otp":"847291"}'"#}</pre>
                         </div>
                     </div>
                 </section>
@@ -157,8 +155,17 @@ pub async fn home() -> Response {
                         <h2 class="section-title">"Dedicated ESPs vs cloudMailer"</h2>
                         <p class="section-sub">
                             "Most providers own your sending pipeline. cloudMailer is a pure relay — "
-                            "your credentials, your domain, your data. We just route it."
+                            "your credentials, your domain, your data, your rules. "
+                            <strong>"It's completely free to use."</strong>
+                            " Sign up, wire your SMTP transport, and start sending."
                         </p>
+                        <div class="free-banner">
+                            <span class="free-icon">"🎉"</span>
+                            <div>
+                                <strong>"Free to use — no credit card, no per-email fees."</strong>
+                                <span>" Log in · Add a transport · Send. That's it."</span>
+                            </div>
+                        </div>
                         <div class="compare-wrap">
                             <table class="compare-table">
                                 <thead>
@@ -169,6 +176,11 @@ pub async fn home() -> Response {
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <tr>
+                                        <td class="compare-feature">"Pricing"</td>
+                                        <td class="cmp-no">"✗  Per-email fees"</td>
+                                        <td class="cmp-yes compare-ours">"✓  Free — always"</td>
+                                    </tr>
                                     <tr>
                                         <td class="compare-feature">"Sending credentials"</td>
                                         <td class="cmp-no">"✗  Vendor-owned"</td>
@@ -191,28 +203,13 @@ pub async fn home() -> Response {
                                     </tr>
                                     <tr>
                                         <td class="compare-feature">"Template engine"</td>
-                                        <td class="cmp-no">"✗  Proprietary"</td>
-                                        <td class="cmp-yes compare-ours">"✓  Open Handlebars {{vars}}"</td>
+                                        <td class="cmp-no">"✗  Proprietary DSL"</td>
+                                        <td class="cmp-yes compare-ours">"✓  Open Handlebars — optional"</td>
                                     </tr>
                                     <tr>
-                                        <td class="compare-feature">"Self-hostable"</td>
-                                        <td class="cmp-no">"✗  No"</td>
-                                        <td class="cmp-yes compare-ours">"✓  Docker in 60 s"</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="compare-feature">"Per-email pricing"</td>
-                                        <td class="cmp-no">"✗  Yes"</td>
-                                        <td class="cmp-yes compare-ours">"✓  Your infra only"</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="compare-feature">"Data sovereignty"</td>
-                                        <td class="cmp-no">"✗  Provider's cloud"</td>
-                                        <td class="cmp-yes compare-ours">"✓  Stays with you"</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="compare-feature">"Secret encryption"</td>
-                                        <td class="cmp-no">"✗  Varies"</td>
-                                        <td class="cmp-yes compare-ours">"✓  AES-256-GCM at rest"</td>
+                                        <td class="compare-feature">"Raw email (no template)"</td>
+                                        <td class="cmp-no">"✗  Not standard"</td>
+                                        <td class="cmp-yes compare-ours">"✓  Pass body_html directly"</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -223,8 +220,11 @@ pub async fn home() -> Response {
                 // ── Final CTA ───────────────────────────────────────────────
                 <section class="cta-section">
                     <div class="section-inner">
-                        <h2>"Ready to send on your terms?"</h2>
-                        <p>"Free to get started. Connect your first transport in under two minutes."</p>
+                        <h2>"Start sending in under two minutes."</h2>
+                        <p>
+                            "No credit card. No per-email fees. "
+                            "Log in → add your SMTP transport → call the API. Done."
+                        </p>
                         <div class="hero-cta">
                             <a href="/signup" class="btn-hero">"Create free account"</a>
                             <a href="/roadmap" class="btn-hero-ghost">"See what's coming →"</a>
