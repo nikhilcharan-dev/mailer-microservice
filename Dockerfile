@@ -1,16 +1,7 @@
-# syntax=docker/dockerfile:1.7
-#
 # Multi-stage build for the cloudMailer workspace.
 #
 #   target=backend   → final image runs the Axum API server
 #   target=frontend  → final image runs the Leptos SSR dashboard
-#
-# Dependency builds are cached via cargo-chef so source-only changes do not
-# trigger a full re-compile of the dependency tree (~200 crates).
-#
-# --mount=type=cache keeps the cargo registry on the Docker host across builds
-# so even when recipe.json changes (new dep / Cargo.toml edit), only the
-# delta is downloaded rather than the full tree.
 
 # ── chef ────────────────────────────────────────────────────────────────────
 FROM rust:bookworm AS chef
@@ -25,26 +16,9 @@ RUN cargo chef prepare --recipe-path recipe.json
 # ── builder ────────────────────────────────────────────────────────────────
 FROM chef AS builder
 COPY --from=planner /build/recipe.json recipe.json
-
-# Cook dependencies.
-# The cache mounts are host-level volumes; they survive across builds so only
-# newly added/changed crates are downloaded when recipe.json changes.
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/build/target \
-    cargo chef cook --release --recipe-path recipe.json --workspace
-
+RUN cargo chef cook --release --recipe-path recipe.json --workspace
 COPY . .
-
-# Build the final binaries.
-# We copy them to / before the RUN exits because /build/target is a cache
-# mount — its contents are not part of the committed Docker layer.
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/build/target \
-    cargo build --release --bin cloud-mailer --bin frontend \
- && cp target/release/cloud-mailer /cloud-mailer \
- && cp target/release/frontend     /frontend
+RUN cargo build --release --bin cloud-mailer --bin frontend
 
 # ── runtime-base ──────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime-base
@@ -61,7 +35,7 @@ WORKDIR /app
 
 # ── backend ────────────────────────────────────────────────────────────────
 FROM runtime-base AS backend
-COPY --from=builder /cloud-mailer /usr/local/bin/cloud-mailer
+COPY --from=builder /build/target/release/cloud-mailer /usr/local/bin/cloud-mailer
 USER app
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
@@ -71,7 +45,7 @@ CMD ["/usr/local/bin/cloud-mailer"]
 
 # ── frontend ───────────────────────────────────────────────────────────────
 FROM runtime-base AS frontend
-COPY --from=builder /frontend /usr/local/bin/frontend
+COPY --from=builder /build/target/release/frontend /usr/local/bin/frontend
 COPY --chown=app:app frontend/static /app/frontend/static
 USER app
 EXPOSE 3000
