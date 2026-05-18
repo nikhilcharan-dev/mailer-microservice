@@ -6,6 +6,7 @@ use axum::{
 };
 use chrono::{TimeZone, Utc};
 use mongodb::bson::{doc, Binary, DateTime as BsonDt};
+use serde::Deserialize;
 use serde_json::json;
 
 use crate::app_state::AppState;
@@ -225,10 +226,16 @@ async fn delete(
     Ok(Json(json!({ "status": "success" })))
 }
 
+#[derive(Deserialize, Default)]
+struct VerifyRequest {
+    test_to: Option<String>,
+}
+
 async fn verify_transport(
     State(state): State<AppState>,
     Extension(identity): Extension<AuthIdentity>,
     Path(name): Path<String>,
+    body: Option<Json<VerifyRequest>>,
 ) -> ApiResult<Json<serde_json::Value>> {
     if !rate_limit::check_verify(&state.redis, &identity.user_id.to_hex()).await? {
         return Err(ApiError::rate_limited(
@@ -256,14 +263,50 @@ async fn verify_transport(
         tls_mode: t.tls_mode,
         smtp_user: t.smtp_user,
         smtp_pass: pass,
-        from_name: t.from_name,
-        from_email: t.from_email,
+        from_name: t.from_name.clone(),
+        from_email: t.from_email.clone(),
     };
 
-    match smtp::verify(&cfg).await {
-        Ok(_) => Ok(Json(json!({ "status": "success", "ok": true }))),
-        Err(e) => Ok(Json(
-            json!({ "status": "error", "ok": false, "error": e.to_string() }),
-        )),
+    let test_to = body.and_then(|b| b.0.test_to);
+
+    if let Some(ref to) = test_to {
+        // Send a real test email through the transport
+        let transport = smtp::build_transport(&cfg).map_err(|e| {
+            ApiError::internal(format!("build transport: {e}"))
+        })?;
+        let html = format!(
+            "<div style=\"font-family:sans-serif;max-width:480px;margin:40px auto;\">\
+             <h2 style=\"color:#6366f1;\">☁ cloudMailer — Test Email</h2>\
+             <p>This test message was sent through transport <strong>{name}</strong>.</p>\
+             <p>If you received this, your SMTP configuration is working correctly.</p>\
+             <hr style=\"border:none;border-top:1px solid #e5e7eb;margin:24px 0;\"/>\
+             <p style=\"color:#9ca3af;font-size:12px;\">Sent by cloudMailer verify endpoint</p>\
+             </div>"
+        );
+        match smtp::send(&transport, &cfg, to, "☁ cloudMailer — Test Email", html).await {
+            smtp::SendOutcome::Ok(_) => Ok(Json(json!({
+                "status": "success",
+                "ok": true,
+                "sent_to": to
+            }))),
+            smtp::SendOutcome::Failed(e) => Ok(Json(json!({
+                "status": "error",
+                "ok": false,
+                "error": e
+            }))),
+            smtp::SendOutcome::TimedOut => Ok(Json(json!({
+                "status": "error",
+                "ok": false,
+                "error": "SMTP send timed out"
+            }))),
+        }
+    } else {
+        // Connection-only test (no email sent)
+        match smtp::verify(&cfg).await {
+            Ok(_) => Ok(Json(json!({ "status": "success", "ok": true }))),
+            Err(e) => Ok(Json(
+                json!({ "status": "error", "ok": false, "error": e.to_string() }),
+            )),
+        }
     }
 }

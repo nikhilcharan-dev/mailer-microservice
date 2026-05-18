@@ -6,8 +6,6 @@ where
     F: FnOnce() -> V,
     V: RenderHtml + Send + 'static,
 {
-    // A reactive Owner gives signals & effects a place to live during render,
-    // even when our views are mostly static.
     let owner = Owner::new();
     let html_body = owner.with(|| view_fn().to_html());
     format!("<!DOCTYPE html>{html_body}")
@@ -28,18 +26,19 @@ pub fn Layout(
             <head>
                 <meta charset="UTF-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-                <title>{format!("{title} · Central Mailer")}</title>
+                <title>{format!("{title} · cloudMailer")}</title>
                 <link rel="stylesheet" href="/static/style.css"/>
             </head>
             <body>
                 <div class="app">
                     <aside class="sidebar">
-                        <div class="brand">"📬 Central Mailer"</div>
+                        <a href="/" class="brand">"☁ cloudMailer"</a>
                         <nav>
-                            {nav_item("/", "Overview")}
+                            {nav_item("/dashboard", "Overview")}
                             {nav_item("/transports", "Transports")}
                             {nav_item("/templates", "Templates")}
                             {nav_item("/logs", "Delivery Logs")}
+                            {nav_item("/docs", "API Docs")}
                             {nav_item("/settings", "Settings")}
                         </nav>
                         <div class="logout">
@@ -67,13 +66,48 @@ pub fn AuthLayout(
             <head>
                 <meta charset="UTF-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-                <title>{format!("{title} · Central Mailer")}</title>
+                <title>{format!("{title} · cloudMailer")}</title>
                 <link rel="stylesheet" href="/static/style.css"/>
             </head>
             <body>
                 <div class="auth">
                     {children()}
                 </div>
+            </body>
+        </html>
+    }
+}
+
+#[component]
+pub fn PublicLayout(
+    #[prop(into)] title: String,
+    children: Children,
+) -> impl IntoView {
+    view! {
+        <html lang="en">
+            <head>
+                <meta charset="UTF-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                <title>{format!("{title} · cloudMailer")}</title>
+                <link rel="stylesheet" href="/static/style.css"/>
+            </head>
+            <body class="public">
+                <header class="pub-nav">
+                    <a class="pub-brand" href="/">"☁ cloudMailer"</a>
+                    <nav class="pub-nav-links">
+                        <a href="/docs">"API Docs"</a>
+                        <a href="/roadmap">"Roadmap"</a>
+                        <a href="/login">"Sign in"</a>
+                        <a href="/signup" class="btn btn-sm">"Get started"</a>
+                    </nav>
+                </header>
+                <div class="pub-content">
+                    {children()}
+                </div>
+                <footer class="pub-footer">
+                    <p>"Built with "<strong>"🦀 Rust"</strong>" · Axum · Leptos · MongoDB · Redis"</p>
+                    <p class="pub-footer-sub">"© 2025 cloudMailer — open-source email relay"</p>
+                </footer>
             </body>
         </html>
     }

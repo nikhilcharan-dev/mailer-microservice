@@ -16,13 +16,17 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,central_mailer_frontend=debug".into()),
+                .unwrap_or_else(|_| "info,cloud_mailer_frontend=debug".into()),
         )
         .init();
 
     dotenvy::dotenv().ok();
 
     let app = Router::new()
+        // ── Public pages ─────────────────────────────────────────────────────
+        .route("/", get(pages::home::home))
+        .route("/docs", get(pages::docs::docs_page))
+        .route("/roadmap", get(pages::roadmap::roadmap_page))
         // ── Auth (public) ────────────────────────────────────────────────────
         .route(
             "/login",
@@ -34,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/logout", post(pages::auth::logout))
         // ── Dashboard ────────────────────────────────────────────────────────
-        .route("/", get(pages::dashboard::dashboard))
+        .route("/dashboard", get(pages::dashboard::dashboard))
         // ── Transports ───────────────────────────────────────────────────────
         .route(
             "/transports",
@@ -79,8 +83,8 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(3000);
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    tracing::info!("[frontend] listening on http://{addr}");
-    tracing::info!("[frontend] backend at {}", api_base());
+    tracing::info!("[cloudMailer frontend] listening on http://{addr}");
+    tracing::info!("[cloudMailer frontend] backend at {}", api_base());
 
     axum::serve(listener, app).await?;
     Ok(())

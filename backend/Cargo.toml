@@ -1,10 +1,10 @@
 [package]
-name = "central-mailer-backend"
+name = "cloud-mailer-backend"
 edition.workspace = true
 version.workspace = true
 
 [[bin]]
-name = "central-mailer"
+name = "cloud-mailer"
 path = "src/main.rs"
 
 [dependencies]

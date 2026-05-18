@@ -67,25 +67,52 @@ pub async fn list_page(jar: CookieJar, Query(q): Query<Flash_>) -> Response {
                                     let port = t.get("smtp_port").and_then(|x| x.as_u64()).unwrap_or(0);
                                     let tls = t.get("tls_mode").and_then(|x| x.as_str()).unwrap_or("").to_string();
                                     let from = t.get("from_email").and_then(|x| x.as_str()).unwrap_or("").to_string();
-                                    let name_v = name.clone();
+                                    let dialog_id = format!("test-dialog-{name}");
+                                    let open_js = format!("document.getElementById('{dialog_id}').showModal()");
                                     let name_d = name.clone();
+                                    let name_v = name.clone();
+                                    let dialog_id2 = dialog_id.clone();
                                     view!{
                                         <tr>
-                                            <td><code>{name}</code></td>
+                                            <td><code>{name.clone()}</code></td>
                                             <td>{host}</td>
                                             <td>{port.to_string()}</td>
                                             <td><span class="tag muted">{tls}</span></td>
                                             <td>{from}</td>
                                             <td style="text-align:right;display:flex;gap:6px;justify-content:flex-end;">
-                                                <form method="POST" action={format!("/transports/{name_v}/verify")} style="display:inline">
-                                                    <button class="btn btn-ghost" type="submit">"Test"</button>
-                                                </form>
+                                                // Test button opens dialog
+                                                <button class="btn btn-ghost" type="button"
+                                                    onclick={open_js}>
+                                                    "Send test"
+                                                </button>
                                                 <form method="POST" action={format!("/transports/{name_d}/delete")} style="display:inline"
                                                       onsubmit="return confirm('Delete this transport?')">
                                                     <button class="btn btn-danger" type="submit">"Delete"</button>
                                                 </form>
                                             </td>
                                         </tr>
+                                        // ── Test-email dialog ──────────────
+                                        <dialog id={dialog_id2} class="test-dialog">
+                                            <div class="dialog-header">
+                                                <h3>{format!("Test transport: {name_v}")}</h3>
+                                                <button class="dialog-close" type="button"
+                                                    onclick="this.closest('dialog').close()">"✕"</button>
+                                            </div>
+                                            <p class="dialog-sub">
+                                                "Enter a recipient address. A real test email will be sent "
+                                                "through this transport so you can confirm delivery."
+                                            </p>
+                                            <form method="POST" action={format!("/transports/{}/verify", name_v)}>
+                                                <label>"Recipient email"</label>
+                                                <input type="email" name="test_to"
+                                                    placeholder="you@example.com" required autofocus/>
+                                                <div class="actions" style="margin-top:14px;">
+                                                    <button class="btn" type="submit">"Send test email"</button>
+                                                    <button class="btn btn-ghost" type="button"
+                                                        onclick="this.closest('dialog').close()">"Cancel"</button>
+                                                </div>
+                                            </form>
+                                        </dialog>
                                     }
                                 }).collect_view()}
                             </tbody>
@@ -193,17 +220,32 @@ pub async fn delete(jar: CookieJar, Path(name): Path<String>) -> Response {
     }
 }
 
-pub async fn verify(jar: CookieJar, Path(name): Path<String>) -> Response {
+#[derive(Deserialize, Default)]
+pub struct VerifyForm {
+    pub test_to: Option<String>,
+}
+
+pub async fn verify(
+    jar: CookieJar,
+    Path(name): Path<String>,
+    Form(f): Form<VerifyForm>,
+) -> Response {
     let token = match session::token_from_jar(&jar) {
         Some(t) => t,
         None => return session::redirect_to_login().into_response(),
     };
+    let body = f.test_to.as_ref().map(|email| json!({ "test_to": email }));
     let path = format!("/v1/transports/{}/verify", urlencoding::encode(&name));
-    match api::request_value(reqwest::Method::POST, &path, Some(&token), None).await {
+    match api::request_value(reqwest::Method::POST, &path, Some(&token), body).await {
         Ok(v) => {
             let ok = v.get("ok").and_then(|x| x.as_bool()).unwrap_or(false);
             if ok {
-                Redirect::to("/transports?ok=Connection+OK").into_response()
+                let msg = match f.test_to.as_deref() {
+                    Some(addr) => format!("Test email sent to {addr}"),
+                    None => "Connection OK".to_string(),
+                };
+                Redirect::to(&format!("/transports?ok={}", urlencoding::encode(&msg)))
+                    .into_response()
             } else {
                 let msg = v
                     .get("error")

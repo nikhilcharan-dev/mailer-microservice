@@ -1,6 +1,9 @@
 pub mod auth;
 pub mod dashboard;
+pub mod docs;
+pub mod home;
 pub mod logs;
+pub mod roadmap;
 pub mod settings;
 pub mod templates;
 pub mod transports;

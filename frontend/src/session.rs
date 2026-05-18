@@ -2,7 +2,7 @@ use axum::http::HeaderMap;
 use axum::response::Redirect;
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
-pub const SESSION_COOKIE: &str = "central_mailer_session";
+pub const SESSION_COOKIE: &str = "cloud_mailer_session";
 
 pub fn token_from_jar(jar: &CookieJar) -> Option<String> {
     jar.get(SESSION_COOKIE).map(|c| c.value().to_string())

@@ -39,7 +39,7 @@ pub async fn login_page(Query(q): Query<ErrParam>) -> Html<String> {
             <AuthLayout title="Sign in">
                 <div class="card">
                     <h1>"Sign in"</h1>
-                    <p class="subtitle">"Central Mailer dashboard"</p>
+                    <p class="subtitle">"cloudMailer dashboard"</p>
                     {flash.as_ref().map(|c| view!{ <Flash kind="error" msg={err_msg(c).to_string()}/> })}
                     <form method="POST" action="/login">
                         <label>"Email or username"</label>
@@ -76,7 +76,7 @@ pub async fn login_submit(jar: CookieJar, Form(f): Form<LoginForm>) -> Response 
                 return Redirect::to("/login?err=error").into_response();
             }
             let jar = session::set_token(jar, token);
-            (jar, Redirect::to("/")).into_response()
+            (jar, Redirect::to("/dashboard")).into_response()
         }
         Err(e) => Redirect::to(&format!("/login?err={}", e.code)).into_response(),
     }

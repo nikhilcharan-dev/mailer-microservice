@@ -1,5 +1,5 @@
 [package]
-name = "central-mailer-frontend"
+name = "cloud-mailer-frontend"
 edition.workspace = true
 version.workspace = true
 

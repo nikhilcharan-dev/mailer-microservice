@@ -48,7 +48,7 @@ pub async fn dashboard(jar: CookieJar) -> Response {
     };
 
     let html = render_page(move || view! {
-        <Layout title="Overview" active="/">
+        <Layout title="Overview" active="/dashboard">
             <h1>{format!("Welcome back, {username}")}</h1>
             <p class="subtitle">"At a glance: today's send activity and your account quotas."</p>
             <div class="stats">
